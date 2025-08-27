@@ -1,32 +1,63 @@
 <script setup lang="ts">
 import { useFileDialog } from '@vueuse/core'
 import { ref } from 'vue'
+import exifr from 'exifr'
+import type { TFilesWithObjectUrl } from '@/Types/types'
 
-type TFilesWithObjectUrl = {
-  file: File
-  url: string
-}
 const emit = defineEmits<{
   (e: 'next', files: TFilesWithObjectUrl[]): void
 }>()
 
-const { files, open, reset, onCancel, onChange } = useFileDialog({
+const { open, reset, onChange } = useFileDialog({
   accept: 'image/*', // Set to accept only image files
   multiple: true, // Allow multiple file selection
 })
 
 const filesWithObjectUrl = ref<TFilesWithObjectUrl[]>([])
 
-onChange((newFiles) => {
+const extractCreationTime = async (file: File): Promise<Date | undefined> => {
+  try {
+    const exifData = await exifr.parse(file)
+    // Try different EXIF fields for creation date
+    const createdAt =
+      exifData?.DateTimeOriginal ||
+      exifData?.DateTime ||
+      exifData?.CreateDate ||
+      exifData?.DateTimeDigitized
+
+    if (createdAt) {
+      return new Date(createdAt)
+    }
+
+    // Fallback to file's last modified date
+    return new Date(file.lastModified)
+  } catch (error) {
+    console.warn('Could not extract EXIF data from', file.name, error)
+    // Fallback to file's last modified date
+    return new Date(file.lastModified)
+  }
+}
+
+onChange(async (newFiles) => {
   if (newFiles === null) {
     filesWithObjectUrl.value.forEach(({ url }) => URL.revokeObjectURL(url))
     filesWithObjectUrl.value = []
     return
   }
-  filesWithObjectUrl.value = Array.from(newFiles).map((file) => ({
-    file,
-    url: URL.createObjectURL(file),
-  }))
+
+  const filesArray = Array.from(newFiles)
+  const filesWithMetadata: TFilesWithObjectUrl[] = []
+
+  for (const file of filesArray) {
+    const createdAt = await extractCreationTime(file)
+    filesWithMetadata.push({
+      file,
+      url: URL.createObjectURL(file),
+      createdAt,
+    })
+  }
+
+  filesWithObjectUrl.value = filesWithMetadata
 })
 
 const goToNextStep = () => {

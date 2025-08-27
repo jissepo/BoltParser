@@ -25,6 +25,24 @@ const getConfidenceClass = (confidence: number) => {
   return 'low'
 }
 
+const formatCreationTime = (date: Date | undefined) => {
+  if (!date) return null
+
+  // Round to nearest 5 minutes
+  const roundedDate = new Date(date)
+  const minutes = roundedDate.getMinutes()
+  const roundedMinutes = Math.round(minutes / 5) * 5
+  roundedDate.setMinutes(roundedMinutes, 0, 0) // Also reset seconds and milliseconds
+
+  return roundedDate.toLocaleString('et', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // Organize results as a matrix: images as rows, rectangles as columns
 const resultMatrix = computed(() => {
   if (results.length === 0) return { images: [], rectangleCount: 0 }
@@ -47,6 +65,7 @@ const resultMatrix = computed(() => {
       fileIndex,
       fileName,
       rectangleResults,
+      createdAt: fileResults[0]?.imageCreatedAt,
     }
   })
 
@@ -85,7 +104,9 @@ const resultMatrix = computed(() => {
           <tbody>
             <tr v-for="image in resultMatrix.images" :key="image.fileIndex">
               <td class="image-name">
-                <strong>{{ image.fileName }}</strong>
+                <div v-if="image.createdAt" class="creation-time">
+                  {{ formatCreationTime(image.createdAt) }}
+                </div>
               </td>
               <td
                 v-for="(result, rectIndex) in image.rectangleResults"
@@ -93,12 +114,7 @@ const resultMatrix = computed(() => {
                 class="text-result"
               >
                 <div v-if="result" class="result-cell">
-                  <div class="text-content">{{ result.text || '(no text found)' }}</div>
-                  <div class="confidence-badge">
-                    <span class="confidence-value" :class="getConfidenceClass(result.confidence)">
-                      {{ Math.round(result.confidence) }}%
-                    </span>
-                  </div>
+                  {{ result.text || '(no text found)' }}
                 </div>
                 <div v-else class="empty-cell">
                   <span class="no-data">No data</span>
@@ -192,11 +208,15 @@ const resultMatrix = computed(() => {
 }
 
 .image-name {
-  background: #f8f9fa;
-  font-weight: 600;
   min-width: 150px;
   max-width: 200px;
   word-break: break-word;
+}
+
+.image-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .text-result {

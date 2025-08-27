@@ -343,6 +343,7 @@ const parseText = async () => {
           rectangle: jobData.rectangle,
           text: result.data.text.trim(),
           confidence: result.data.confidence,
+          imageCreatedAt: files[jobData.fileIndex]?.createdAt,
         } as ParsedResult
       }),
     )
