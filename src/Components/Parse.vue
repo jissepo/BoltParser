@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TFilesWithObjectUrl, Rectangle, ParsedResult } from '@/Types/types'
 import { createWorker, createScheduler } from 'tesseract.js'
-import { onMounted, onUnmounted, ref, computed, nextTick, toValue } from 'vue'
+import { onMounted, onUnmounted, ref, computed, nextTick } from 'vue'
 import { useElementBounding } from '@vueuse/core'
 
 const scheduler = createScheduler()
@@ -64,13 +64,15 @@ const startDrawing = (event: MouseEvent | TouchEvent) => {
   isDrawing.value = true
 
   let clientX: number, clientY: number
-  if (event instanceof TouchEvent) {
+  // Safari-compatible touch event detection
+  if ('touches' in event && event.touches && event.touches.length > 0) {
     const touch = event.touches[0]
     clientX = touch.clientX
     clientY = touch.clientY
   } else {
-    clientX = event.clientX
-    clientY = event.clientY
+    const mouseEvent = event as MouseEvent
+    clientX = mouseEvent.clientX
+    clientY = mouseEvent.clientY
   }
 
   const coords = getCanvasCoordinates(clientX, clientY)
@@ -89,13 +91,15 @@ const draw = (event: MouseEvent | TouchEvent) => {
   event.preventDefault() // Prevent scrolling on touch devices
 
   let clientX: number, clientY: number
-  if (event instanceof TouchEvent) {
+  // Safari-compatible touch event detection
+  if ('touches' in event && event.touches && event.touches.length > 0) {
     const touch = event.touches[0]
     clientX = touch.clientX
     clientY = touch.clientY
   } else {
-    clientX = event.clientX
-    clientY = event.clientY
+    const mouseEvent = event as MouseEvent
+    clientX = mouseEvent.clientX
+    clientY = mouseEvent.clientY
   }
 
   const coords = getCanvasCoordinates(clientX, clientY)
