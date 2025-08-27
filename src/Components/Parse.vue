@@ -26,7 +26,7 @@ const goBack = () => {
 const canvasRef = ref<HTMLCanvasElement>()
 const imageRef = ref<HTMLImageElement>()
 const isDrawing = ref(false)
-const rectangles = ref<Rectangle[]>([])
+const rectangles = ref<Rectangle[]>([{ left: 72, top: 1711, width: 270, height: 93 }])
 const currentRect = ref<Rectangle | null>(null)
 const startPoint = ref({ x: 0, y: 0 })
 
