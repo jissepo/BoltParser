@@ -15,6 +15,9 @@ const emit = defineEmits<{
 }>()
 
 const goBack = () => {
+  // Save rectangles to localStorage before leaving
+  saveRectanglesToStorage()
+
   files.forEach(({ url }) => URL.revokeObjectURL(url))
   emit('back')
 }
@@ -35,6 +38,62 @@ const parseStatus = ref('')
 const { left: canvasLeft, top: canvasTop } = useElementBounding(canvasRef)
 
 const firstImage = computed(() => files[0]?.url || '')
+
+// LocalStorage functions
+const getStorageKey = () => {
+  return `boltparser-rectangles`
+}
+
+const saveRectanglesToStorage = () => {
+  try {
+    const storageKey = getStorageKey()
+    const rectangleData = {
+      rectangles: rectangles.value,
+      timestamp: Date.now(),
+      imageInfo: {
+        fileName: files[0]?.file.name,
+        fileCount: files.length,
+      },
+    }
+    localStorage.setItem(storageKey, JSON.stringify(rectangleData))
+    console.log('Rectangles saved to localStorage:', storageKey)
+  } catch (error) {
+    console.warn('Failed to save rectangles to localStorage:', error)
+  }
+}
+
+const loadRectanglesFromStorage = () => {
+  try {
+    const storageKey = getStorageKey()
+    const stored = localStorage.getItem(storageKey)
+    if (stored) {
+      const data = JSON.parse(stored)
+      // Validate the data structure
+      if (data.rectangles && Array.isArray(data.rectangles)) {
+        rectangles.value = data.rectangles
+        console.log('Rectangles loaded from localStorage:', data.rectangles.length, 'rectangles')
+        // Redraw canvas if it's ready
+        if (canvasRef.value && imageRef.value?.complete) {
+          nextTick(() => {
+            drawCanvas()
+          })
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load rectangles from localStorage:', error)
+  }
+}
+
+const clearRectanglesFromStorage = () => {
+  try {
+    const storageKey = getStorageKey()
+    localStorage.removeItem(storageKey)
+    console.log('Rectangles cleared from localStorage:', storageKey)
+  } catch (error) {
+    console.warn('Failed to clear rectangles from localStorage:', error)
+  }
+}
 
 const getImageScale = () => {
   if (!imageRef.value || !canvasRef.value) return { scaleX: 1, scaleY: 1 }
@@ -132,6 +191,9 @@ const stopDrawing = () => {
 
     rectangles.value.push(actualRect)
     console.log('Rectangle saved:', actualRect)
+
+    // Save to localStorage
+    saveRectanglesToStorage()
   }
 
   currentRect.value = null
@@ -221,6 +283,9 @@ const setupCanvas = () => {
 const clearRectangles = () => {
   rectangles.value = []
   drawCanvas()
+
+  // Clear from localStorage
+  clearRectanglesFromStorage()
 }
 
 const parseText = async () => {
@@ -305,6 +370,9 @@ const handleResize = () => {
 onMounted(() => {
   window.addEventListener('resize', handleResize)
 
+  // Load rectangles from localStorage when component mounts
+  loadRectanglesFromStorage()
+
   const numWorkers = files.length % 4 === 0 ? files.length / 4 : Math.floor(files.length / 4) + 1
 
   const workerPoolPromises = []
@@ -324,6 +392,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // Save rectangles to localStorage before component unmounts
+  saveRectanglesToStorage()
+
   window.removeEventListener('resize', handleResize)
 })
 </script>
