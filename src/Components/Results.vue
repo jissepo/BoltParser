@@ -87,7 +87,7 @@ const resultMatrix = computed(() => {
             <tr>
               <th>Image</th>
               <th v-for="rectIndex in resultMatrix.rectangleCount" :key="rectIndex">
-                Area {{ rectIndex + 1 }}
+                Area {{ rectIndex }}
               </th>
             </tr>
           </thead>

@@ -331,7 +331,7 @@ onUnmounted(() => {
     <span>Drag on the image to select areas:</span>
 
     <!-- Parse button above canvas -->
-    <div v-if="rectangles.length > 0" class="parse-section">
+    <div class="parse-section">
       <button
         @click="parseText"
         :disabled="isParsing || rectangles.length === 0"
