@@ -41,7 +41,12 @@ const goBackToParse = () => {
       @back="goBackToUpload"
       @results="handleParseResults"
     />
-    <Results v-else-if="currStep === 2" :results="parseResults" @back="goBackToParse" />
+    <Results
+      v-else-if="currStep === 2"
+      :results="parseResults"
+      @back="goBackToParse"
+      @back-to-upload="goBackToUpload"
+    />
   </main>
 </template>
 

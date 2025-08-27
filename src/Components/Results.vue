@@ -23,10 +23,15 @@ const { results = [] } = defineProps<{
 
 const emit = defineEmits<{
   back: []
+  backToUpload: []
 }>()
 
 const goBack = () => {
   emit('back')
+}
+
+const goBackToUpload = () => {
+  emit('backToUpload')
 }
 
 const getConfidenceClass = (confidence: number) => {
@@ -73,6 +78,7 @@ const resultMatrix = computed(() => {
     <p>Text extracted from selected areas</p>
 
     <div class="controls">
+      <button @click="goBackToUpload" class="back-to-upload-button">← Back to Upload</button>
       <button @click="goBack" class="back-button">← Back to Selection</button>
     </div>
 
@@ -145,6 +151,14 @@ const resultMatrix = computed(() => {
 
 .back-button:hover {
   background: #5a6268;
+}
+
+.back-to-upload-button {
+  background: #dc3545;
+}
+
+.back-to-upload-button:hover {
+  background: #c82333;
 }
 
 .no-results {
@@ -280,6 +294,11 @@ const resultMatrix = computed(() => {
   .controls button {
     width: 100%;
     max-width: 300px;
+    order: 2; /* Default order for back buttons */
+  }
+
+  .back-to-upload-button {
+    order: 1; /* Put "Back to Upload" button first on mobile */
   }
 
   .results-table {
