@@ -1,21 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-
-interface Rectangle {
-  left: number
-  top: number
-  width: number
-  height: number
-}
-
-interface ParsedResult {
-  fileIndex: number
-  fileName: string
-  rectangleIndex: number
-  rectangle: Rectangle
-  text: string
-  confidence: number
-}
+import type { ParsedResult } from '@/Types/types'
 
 const { results = [] } = defineProps<{
   results: ParsedResult[]
