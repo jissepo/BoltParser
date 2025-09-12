@@ -54,6 +54,7 @@ const goToHistory = () => {
     />
     <History v-else-if="currStep === 3" @back="goBackToUpload" />
   </main>
+  <div>1.0.0</div>
 </template>
 
 <style>
