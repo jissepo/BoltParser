@@ -117,6 +117,13 @@ const getResultMatrix = (scan: SavedScan) => {
       createdAt: fileResults[0]?.imageCreatedAt,
     }
   })
+  // .sort((a, b) => {
+  //   // Sort by creation time if available, otherwise by file index
+  //   if (a.createdAt && b.createdAt) {
+  //     return a.createdAt.getTime() - b.createdAt.getTime()
+  //   }
+  //   return a.fileIndex - b.fileIndex
+  // })
 
   return {
     images,

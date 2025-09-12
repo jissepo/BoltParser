@@ -12,10 +12,18 @@ export function saveScan(results: ParsedResult[], name?: string): string {
   const scan: SavedScan = {
     id: scanId,
     timestamp: Date.now(),
-    results: results.map((result) => ({
-      ...result,
-      imageCreatedAt: result.imageCreatedAt ? new Date(result.imageCreatedAt) : undefined,
-    })),
+    results: results
+      .map((result) => ({
+        ...result,
+        imageCreatedAt: result.imageCreatedAt ? new Date(result.imageCreatedAt) : undefined,
+      }))
+      .sort((a, b) => {
+        // Sort by creation time if available, otherwise by file index
+        if (a.imageCreatedAt && b.imageCreatedAt) {
+          return a.imageCreatedAt.getTime() - b.imageCreatedAt.getTime()
+        }
+        return a.fileIndex - b.fileIndex
+      }),
     name,
   }
 
@@ -42,18 +50,10 @@ export function getSavedScans(): SavedScan[] {
     // Convert timestamps back to Date objects for imageCreatedAt
     return scans.map((scan) => ({
       ...scan,
-      results: scan.results
-        .map((result) => ({
-          ...result,
-          imageCreatedAt: result.imageCreatedAt ? new Date(result.imageCreatedAt) : undefined,
-        }))
-        .sort((a, b) => {
-          // Sort by creation time if available, otherwise by file index
-          if (a.imageCreatedAt && b.imageCreatedAt) {
-            return a.imageCreatedAt.getTime() - b.imageCreatedAt.getTime()
-          }
-          return a.fileIndex - b.fileIndex
-        }),
+      results: scan.results.map((result) => ({
+        ...result,
+        imageCreatedAt: result.imageCreatedAt ? new Date(result.imageCreatedAt) : undefined,
+      })),
     }))
   } catch (error) {
     console.warn('Failed to load saved scans:', error)
