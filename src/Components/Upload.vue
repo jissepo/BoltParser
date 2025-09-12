@@ -6,6 +6,7 @@ import type { TFilesWithObjectUrl } from '@/Types/types'
 
 const emit = defineEmits<{
   (e: 'next', files: TFilesWithObjectUrl[]): void
+  (e: 'history'): void
 }>()
 
 const { open, reset, onChange } = useFileDialog({
@@ -63,11 +64,20 @@ onChange(async (newFiles) => {
 const goToNextStep = () => {
   emit('next', filesWithObjectUrl.value)
 }
+
+const goToHistory = () => {
+  emit('history')
+}
 </script>
 
 <template>
   <h1>Welcome to BoltParser</h1>
   <p>Select your images that you wish to parse.</p>
+
+  <div class="top-actions">
+    <button @click="goToHistory" class="history-button">📚 View History</button>
+  </div>
+
   <div class="actions">
     <button v-if="!filesWithObjectUrl.length" type="button" @click="() => open()">
       Choose file
@@ -87,6 +97,27 @@ const goToNextStep = () => {
 </template>
 
 <style scoped>
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.history-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.history-button:hover {
+  background: #0056b3;
+}
+
 .file-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

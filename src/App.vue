@@ -3,9 +3,10 @@ import { ref } from 'vue'
 import Upload from './Components/Upload.vue'
 import Parse from './Components/Parse.vue'
 import Results from './Components/Results.vue'
+import History from './Components/History.vue'
 import type { TFilesWithObjectUrl, ParsedResult } from './Types/types'
 
-const currStep = ref(0)
+const currStep = ref(0) // 0: Upload, 1: Parse, 2: Results, 3: History
 
 const filesToParse = ref<TFilesWithObjectUrl[]>([])
 const parseResults = ref<ParsedResult[]>([])
@@ -30,11 +31,15 @@ const goBackToUpload = () => {
 const goBackToParse = () => {
   currStep.value = 1
 }
+
+const goToHistory = () => {
+  currStep.value = 3
+}
 </script>
 
 <template>
   <main class="app">
-    <Upload v-if="currStep === 0" @next="handleParseStep" />
+    <Upload v-if="currStep === 0" @next="handleParseStep" @history="goToHistory" />
     <Parse
       v-else-if="currStep === 1"
       :files="filesToParse"
@@ -47,6 +52,7 @@ const goBackToParse = () => {
       @back="goBackToParse"
       @back-to-upload="goBackToUpload"
     />
+    <History v-else-if="currStep === 3" @back="goBackToUpload" />
   </main>
 </template>
 

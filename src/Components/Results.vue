@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { ParsedResult } from '@/Types/types'
+import { saveScan } from '@/utils/scanStorage'
 
 const { results = [] } = defineProps<{
   results: ParsedResult[]
@@ -11,6 +12,10 @@ const emit = defineEmits<{
   backToUpload: []
 }>()
 
+const showSaveDialog = ref(false)
+const scanName = ref('')
+const isSaved = ref(false)
+
 const goBack = () => {
   emit('back')
 }
@@ -19,10 +24,36 @@ const goBackToUpload = () => {
   emit('backToUpload')
 }
 
-const getConfidenceClass = (confidence: number) => {
-  if (confidence >= 80) return 'high'
-  if (confidence >= 60) return 'medium'
-  return 'low'
+const openSaveDialog = () => {
+  if (results.length === 0) {
+    alert('No results to save!')
+    return
+  }
+  showSaveDialog.value = true
+  scanName.value = `Scan ${new Date().toLocaleDateString('et')}`
+}
+
+const closeSaveDialog = () => {
+  showSaveDialog.value = false
+  scanName.value = ''
+}
+
+const saveResults = () => {
+  try {
+    const savedId = saveScan(results, scanName.value.trim() || undefined)
+    isSaved.value = true
+    showSaveDialog.value = false
+
+    // Show confirmation for 3 seconds
+    setTimeout(() => {
+      isSaved.value = false
+    }, 3000)
+
+    console.log('Results saved with ID:', savedId)
+  } catch (error) {
+    console.error('Failed to save results:', error)
+    alert('Failed to save results. Please try again.')
+  }
 }
 
 const formatCreationTime = (date: Date | undefined) => {
@@ -92,6 +123,29 @@ const resultMatrix = computed(() => {
     <div class="controls">
       <button @click="goBackToUpload" class="back-to-upload-button">← Back to Upload</button>
       <button @click="goBack" class="back-button">← Back to Selection</button>
+      <button @click="openSaveDialog" class="save-button" :disabled="results.length === 0">
+        💾 Save Results
+      </button>
+      <div v-if="isSaved" class="save-confirmation">✅ Results saved successfully!</div>
+    </div>
+
+    <!-- Save Dialog -->
+    <div v-if="showSaveDialog" class="save-dialog-overlay" @click="closeSaveDialog">
+      <div class="save-dialog" @click.stop>
+        <h3>Save Scan Results</h3>
+        <p>Enter a name for this scan session (optional):</p>
+        <input
+          v-model="scanName"
+          type="text"
+          placeholder="Scan name..."
+          class="scan-name-input"
+          @keyup.enter="saveResults"
+        />
+        <div class="dialog-buttons">
+          <button @click="closeSaveDialog" class="cancel-button">Cancel</button>
+          <button @click="saveResults" class="confirm-save-button">Save</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="resultMatrix.images.length === 0" class="no-results">
@@ -168,6 +222,120 @@ const resultMatrix = computed(() => {
 
 .back-to-upload-button:hover {
   background: #c82333;
+}
+
+.save-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.save-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.save-confirmation {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.save-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.save-dialog {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+}
+
+.save-dialog h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.save-dialog p {
+  margin: 0 0 1rem 0;
+  color: #666;
+}
+
+.scan-name-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  box-sizing: border-box;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancel-button,
+.confirm-save-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.cancel-button {
+  background: #6c757d;
+  color: white;
+}
+
+.cancel-button:hover {
+  background: #5a6268;
+}
+
+.confirm-save-button {
+  background: #28a745;
+  color: white;
+}
+
+.confirm-save-button:hover {
+  background: #218838;
 }
 
 .no-results {
