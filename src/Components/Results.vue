@@ -79,8 +79,8 @@ const resultMatrix = computed(() => {
   if (results.length === 0) return { images: [], rectangleCount: 0 }
 
   // Get unique file indices and rectangle indices
-  const fileIndices = [...new Set(results.map((r) => r.fileIndex))].sort()
-  const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))].sort()
+  const fileIndices = [...new Set(results.map((r) => r.fileIndex))]
+  const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))]
 
   // Create matrix
   const images = fileIndices.map((fileIndex) => {

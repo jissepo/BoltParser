@@ -99,8 +99,8 @@ const getResultMatrix = (scan: SavedScan) => {
   const results = scan.results
   if (results.length === 0) return { images: [], rectangleCount: 0 }
 
-  const fileIndices = [...new Set(results.map((r) => r.fileIndex))].sort()
-  const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))].sort()
+  const fileIndices = [...new Set(results.map((r) => r.fileIndex))]
+  const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))]
 
   const images = fileIndices.map((fileIndex) => {
     const fileResults = results.filter((r) => r.fileIndex === fileIndex)
