@@ -19,7 +19,13 @@ const handleParseStep = (files: TFilesWithObjectUrl[]) => {
 
 const handleParseResults = (results: ParsedResult[]) => {
   console.log('Parse results received:', results)
-  parseResults.value = results
+  parseResults.value = results.sort((a, b) => {
+    // Sort by creation time if available, otherwise by file index
+    if (a.imageCreatedAt && b.imageCreatedAt) {
+      return a.imageCreatedAt.getTime() - b.imageCreatedAt.getTime()
+    }
+    return a.fileIndex - b.fileIndex
+  })
   currStep.value = 2
 }
 
@@ -54,7 +60,7 @@ const goToHistory = () => {
     />
     <History v-else-if="currStep === 3" @back="goBackToUpload" />
   </main>
-  <div>1.0.0</div>
+  <div>1.0.1</div>
 </template>
 
 <style>

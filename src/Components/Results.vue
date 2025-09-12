@@ -83,30 +83,22 @@ const resultMatrix = computed(() => {
   const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))].sort()
 
   // Create matrix
-  const images = fileIndices
-    .map((fileIndex) => {
-      const fileResults = results.filter((r) => r.fileIndex === fileIndex)
-      const fileName = fileResults[0]?.fileName || `File ${fileIndex + 1}`
+  const images = fileIndices.map((fileIndex) => {
+    const fileResults = results.filter((r) => r.fileIndex === fileIndex)
+    const fileName = fileResults[0]?.fileName || `File ${fileIndex + 1}`
 
-      // Create array for all rectangles, some might be undefined if not processed
-      const rectangleResults = rectangleIndices.map((rectIndex) =>
-        fileResults.find((r) => r.rectangleIndex === rectIndex),
-      )
+    // Create array for all rectangles, some might be undefined if not processed
+    const rectangleResults = rectangleIndices.map((rectIndex) =>
+      fileResults.find((r) => r.rectangleIndex === rectIndex),
+    )
 
-      return {
-        fileIndex,
-        fileName,
-        rectangleResults,
-        createdAt: fileResults[0]?.imageCreatedAt,
-      }
-    })
-    .sort((a, b) => {
-      // Sort by creation time if available, otherwise by file index
-      if (a.createdAt && b.createdAt) {
-        return a.createdAt.getTime() - b.createdAt.getTime()
-      }
-      return a.fileIndex - b.fileIndex
-    })
+    return {
+      fileIndex,
+      fileName,
+      rectangleResults,
+      createdAt: fileResults[0]?.imageCreatedAt,
+    }
+  })
 
   return {
     images,
