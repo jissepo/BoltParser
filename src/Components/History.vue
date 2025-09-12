@@ -94,12 +94,6 @@ const formatCreationTime = (date: Date | undefined) => {
   })
 }
 
-const getConfidenceClass = (confidence: number) => {
-  if (confidence >= 80) return 'high'
-  if (confidence >= 60) return 'medium'
-  return 'low'
-}
-
 // Organize results as a matrix for each scan
 const getResultMatrix = (scan: SavedScan) => {
   const results = scan.results
