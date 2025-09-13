@@ -7,6 +7,7 @@ import {
   deleteResultFromScan,
   getScansInDateRange,
   cleanupOldScans,
+  updateResultText,
 } from '@/utils/scanStorage'
 
 const emit = defineEmits<{
@@ -17,6 +18,8 @@ const savedScans = ref<SavedScan[]>([])
 const startDate = ref('')
 const endDate = ref('')
 const showDateFilter = ref(false)
+const editingCell = ref<{ scanId: string; fileIndex: number; rectIndex: number } | null>(null)
+const editText = ref('')
 
 const goBack = () => {
   emit('back')
@@ -64,6 +67,39 @@ const deleteResultRow = (scanId: string, fileIndex: number) => {
     deleteResultFromScan(scanId, fileIndex)
     loadScans()
   }
+}
+
+const startEdit = (scanId: string, fileIndex: number, rectIndex: number, currentText: string) => {
+  editingCell.value = { scanId, fileIndex, rectIndex }
+  editText.value = currentText || ''
+}
+
+const cancelEdit = () => {
+  editingCell.value = null
+  editText.value = ''
+}
+
+const saveEdit = () => {
+  if (!editingCell.value) return
+
+  const { scanId, fileIndex, rectIndex } = editingCell.value
+
+  // Update in storage
+  updateResultText(scanId, fileIndex, rectIndex, editText.value.trim())
+
+  // Reload scans to reflect changes
+  loadScans()
+
+  editingCell.value = null
+  editText.value = ''
+}
+
+const isEditing = (scanId: string, fileIndex: number, rectIndex: number) => {
+  return (
+    editingCell.value?.scanId === scanId &&
+    editingCell.value?.fileIndex === fileIndex &&
+    editingCell.value?.rectIndex === rectIndex
+  )
 }
 
 const formatScanDate = (timestamp: number) => {
@@ -211,7 +247,32 @@ onMounted(() => {
                     class="text-result"
                   >
                     <div v-if="result" class="result-cell">
-                      {{ result.text || '(no text found)' }}
+                      <div v-if="isEditing(scan.id, image.fileIndex, rectIndex)" class="edit-mode">
+                        <textarea
+                          v-model="editText"
+                          class="edit-textarea"
+                          @keyup.ctrl.enter="saveEdit"
+                          @keyup.escape="cancelEdit"
+                          rows="3"
+                        ></textarea>
+                        <div class="edit-buttons">
+                          <button @click="saveEdit" class="save-edit-btn">✓</button>
+                          <button @click="cancelEdit" class="cancel-edit-btn">✕</button>
+                        </div>
+                      </div>
+                      <div
+                        v-else
+                        class="text-content"
+                        @dblclick="startEdit(scan.id, image.fileIndex, rectIndex, result.text)"
+                      >
+                        {{ result.text || '(no text found)' }}
+                        <button
+                          @click="startEdit(scan.id, image.fileIndex, rectIndex, result.text)"
+                          class="edit-btn"
+                        >
+                          ✏️
+                        </button>
+                      </div>
                     </div>
                     <div v-else class="empty-cell">
                       <span class="no-data">No data</span>
@@ -433,6 +494,83 @@ onMounted(() => {
   font-size: 0.9rem;
   line-height: 1.4;
   word-break: break-word;
+  padding: 0.375rem;
+  border-radius: 3px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  cursor: pointer;
+}
+
+.text-content:hover {
+  background: #e9ecef;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: 0.2rem;
+}
+
+.text-content:hover .edit-btn {
+  opacity: 1;
+}
+
+.edit-mode {
+  width: 100%;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 0.5rem;
+  border: 2px solid #007bff;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: flex-end;
+}
+
+.save-edit-btn,
+.cancel-edit-btn {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.save-edit-btn {
+  background: #28a745;
+  color: white;
+}
+
+.save-edit-btn:hover {
+  background: #218838;
+}
+
+.cancel-edit-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.cancel-edit-btn:hover {
+  background: #c82333;
 }
 
 .confidence-badge {

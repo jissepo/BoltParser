@@ -28,7 +28,7 @@ export function saveScan(results: ParsedResult[], name?: string): string {
   }
 
   const existingScans = getSavedScans()
-  existingScans.push(scan)
+  existingScans.unshift(scan)
 
   // Clean up old scans (older than 3 months)
   const cutoffDate = Date.now() - RETENTION_MONTHS * 30 * 24 * 60 * 60 * 1000
@@ -86,6 +86,36 @@ export function deleteResultFromScan(scanId: string, fileIndex: number): void {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scans))
   console.log('Result row deleted from scan:', scanId, 'fileIndex:', fileIndex)
+}
+
+export function updateResultText(
+  scanId: string,
+  fileIndex: number,
+  rectangleIndex: number,
+  newText: string,
+): void {
+  const scans = getSavedScans()
+  const scanIndex = scans.findIndex((scan) => scan.id === scanId)
+
+  if (scanIndex === -1) return
+
+  const resultIndex = scans[scanIndex].results.findIndex(
+    (result) => result.fileIndex === fileIndex && result.rectangleIndex === rectangleIndex,
+  )
+
+  if (resultIndex === -1) return
+
+  scans[scanIndex].results[resultIndex].text = newText
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scans))
+  console.log(
+    'Result text updated for scan:',
+    scanId,
+    'fileIndex:',
+    fileIndex,
+    'rectangleIndex:',
+    rectangleIndex,
+  )
 }
 
 export function getScansInDateRange(startDate: Date, endDate: Date): SavedScan[] {

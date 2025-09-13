@@ -10,11 +10,23 @@ const { results = [] } = defineProps<{
 const emit = defineEmits<{
   back: []
   backToUpload: []
+  goToHistory: []
 }>()
 
 const showSaveDialog = ref(false)
 const scanName = ref('')
 const isSaved = ref(false)
+const editingCell = ref<{ fileIndex: number; rectIndex: number } | null>(null)
+const editText = ref('')
+const localResults = ref<ParsedResult[]>([])
+
+// Initialize local results
+const initializeLocalResults = () => {
+  localResults.value = [...results]
+}
+
+// Initialize on mount
+initializeLocalResults()
 
 const goBack = () => {
   emit('back')
@@ -22,6 +34,10 @@ const goBack = () => {
 
 const goBackToUpload = () => {
   emit('backToUpload')
+}
+
+const goToHistory = () => {
+  emit('goToHistory')
 }
 
 const openSaveDialog = () => {
@@ -40,7 +56,7 @@ const closeSaveDialog = () => {
 
 const saveResults = () => {
   try {
-    const savedId = saveScan(results, scanName.value.trim() || undefined)
+    const savedId = saveScan(localResults.value, scanName.value.trim() || undefined)
     isSaved.value = true
     showSaveDialog.value = false
 
@@ -54,6 +70,38 @@ const saveResults = () => {
     console.error('Failed to save results:', error)
     alert('Failed to save results. Please try again.')
   }
+}
+
+const startEdit = (fileIndex: number, rectIndex: number, currentText: string) => {
+  editingCell.value = { fileIndex, rectIndex }
+  editText.value = currentText || ''
+}
+
+const cancelEdit = () => {
+  editingCell.value = null
+  editText.value = ''
+}
+
+const saveEdit = () => {
+  if (!editingCell.value) return
+
+  const { fileIndex, rectIndex } = editingCell.value
+
+  // Update local results
+  const resultIndex = localResults.value.findIndex(
+    (r) => r.fileIndex === fileIndex && r.rectangleIndex === rectIndex,
+  )
+
+  if (resultIndex !== -1) {
+    localResults.value[resultIndex].text = editText.value.trim()
+  }
+
+  editingCell.value = null
+  editText.value = ''
+}
+
+const isEditing = (fileIndex: number, rectIndex: number) => {
+  return editingCell.value?.fileIndex === fileIndex && editingCell.value?.rectIndex === rectIndex
 }
 
 const formatCreationTime = (date: Date | undefined) => {
@@ -76,15 +124,15 @@ const formatCreationTime = (date: Date | undefined) => {
 
 // Organize results as a matrix: images as rows, rectangles as columns
 const resultMatrix = computed(() => {
-  if (results.length === 0) return { images: [], rectangleCount: 0 }
+  if (localResults.value.length === 0) return { images: [], rectangleCount: 0 }
 
   // Get unique file indices and rectangle indices
-  const fileIndices = [...new Set(results.map((r) => r.fileIndex))]
-  const rectangleIndices = [...new Set(results.map((r) => r.rectangleIndex))]
+  const fileIndices = [...new Set(localResults.value.map((r) => r.fileIndex))]
+  const rectangleIndices = [...new Set(localResults.value.map((r) => r.rectangleIndex))]
 
   // Create matrix
   const images = fileIndices.map((fileIndex) => {
-    const fileResults = results.filter((r) => r.fileIndex === fileIndex)
+    const fileResults = localResults.value.filter((r) => r.fileIndex === fileIndex)
     const fileName = fileResults[0]?.fileName || `File ${fileIndex + 1}`
 
     // Create array for all rectangles, some might be undefined if not processed
@@ -118,6 +166,7 @@ const resultMatrix = computed(() => {
       <button @click="openSaveDialog" class="save-button" :disabled="results.length === 0">
         💾 Save Results
       </button>
+      <button @click="goToHistory" class="history-button">📚 View History</button>
       <div v-if="isSaved" class="save-confirmation">✅ Results saved successfully!</div>
     </div>
 
@@ -168,7 +217,32 @@ const resultMatrix = computed(() => {
                 class="text-result"
               >
                 <div v-if="result" class="result-cell">
-                  {{ result.text || '(no text found)' }}
+                  <div v-if="isEditing(image.fileIndex, rectIndex)" class="edit-mode">
+                    <textarea
+                      v-model="editText"
+                      class="edit-textarea"
+                      @keyup.ctrl.enter="saveEdit"
+                      @keyup.escape="cancelEdit"
+                      rows="3"
+                    ></textarea>
+                    <div class="edit-buttons">
+                      <button @click="saveEdit" class="save-edit-btn">✓</button>
+                      <button @click="cancelEdit" class="cancel-edit-btn">✕</button>
+                    </div>
+                  </div>
+                  <div
+                    v-else
+                    class="text-content"
+                    @dblclick="startEdit(image.fileIndex, rectIndex, result.text)"
+                  >
+                    {{ result.text || '(no text found)' }}
+                    <button
+                      @click="startEdit(image.fileIndex, rectIndex, result.text)"
+                      class="edit-btn"
+                    >
+                      ✏️
+                    </button>
+                  </div>
                 </div>
                 <div v-else class="empty-cell">
                   <span class="no-data">No data</span>
@@ -234,6 +308,21 @@ const resultMatrix = computed(() => {
 .save-button:disabled {
   background: #6c757d;
   cursor: not-allowed;
+}
+
+.history-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.history-button:hover {
+  background: #0056b3;
 }
 
 .save-confirmation {
@@ -404,11 +493,82 @@ const resultMatrix = computed(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.4;
   padding: 0.5rem;
-  background: #f9f9f9;
   border-radius: 3px;
   min-height: 40px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  position: relative;
+  cursor: pointer;
+}
+
+.text-content:hover {
+  background: #e9ecef;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: 0.2rem;
+}
+
+.text-content:hover .edit-btn {
+  opacity: 1;
+}
+
+.edit-mode {
+  width: 100%;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 0.5rem;
+  border: 2px solid #007bff;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: flex-end;
+}
+
+.save-edit-btn,
+.cancel-edit-btn {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.save-edit-btn {
+  background: #28a745;
+  color: white;
+}
+
+.save-edit-btn:hover {
+  background: #218838;
+}
+
+.cancel-edit-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.cancel-edit-btn:hover {
+  background: #c82333;
 }
 
 .confidence-badge {

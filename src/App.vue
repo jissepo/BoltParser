@@ -57,6 +57,7 @@ const goToHistory = () => {
       :results="parseResults"
       @back="goBackToParse"
       @back-to-upload="goBackToUpload"
+      @go-to-history="goToHistory"
     />
     <History v-else-if="currStep === 3" @back="goBackToUpload" />
   </main>
