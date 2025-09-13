@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { ParsedResult } from '@/Types/types'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import type { ParsedResult, TFilesWithObjectUrl } from '@/Types/types'
 import { saveScan } from '@/utils/scanStorage'
 
-const { results = [] } = defineProps<{
+const { results = [], files = [] } = defineProps<{
   results: ParsedResult[]
+  files: TFilesWithObjectUrl[]
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +20,11 @@ const isSaved = ref(false)
 const editingCell = ref<{ fileIndex: number; rectIndex: number } | null>(null)
 const editText = ref('')
 const localResults = ref<ParsedResult[]>([])
+
+// Image modal state
+const showImageModal = ref(false)
+const modalImageUrl = ref('')
+const modalImageAlt = ref('')
 
 // Initialize local results
 const initializeLocalResults = () => {
@@ -122,6 +128,42 @@ const formatCreationTime = (date: Date | undefined) => {
   })
 }
 
+const getImageUrl = (fileIndex: number) => {
+  return files[fileIndex]?.url || undefined
+}
+
+// Image modal functions
+const openImageModal = (fileIndex: number) => {
+  const imageUrl = getImageUrl(fileIndex)
+  if (imageUrl) {
+    modalImageUrl.value = imageUrl
+    modalImageAlt.value = `Image ${fileIndex + 1}`
+    showImageModal.value = true
+  }
+}
+
+const closeImageModal = () => {
+  showImageModal.value = false
+  modalImageUrl.value = ''
+  modalImageAlt.value = ''
+}
+
+// Handle keyboard events for modal
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && showImageModal.value) {
+    closeImageModal()
+  }
+}
+
+// Add keyboard event listener
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
 // Organize results as a matrix: images as rows, rectangles as columns
 const resultMatrix = computed(() => {
   if (localResults.value.length === 0) return { images: [], rectangleCount: 0 }
@@ -199,6 +241,7 @@ const resultMatrix = computed(() => {
           <thead>
             <tr>
               <th>Image</th>
+              <th>Preview</th>
               <th v-for="rectIndex in resultMatrix.rectangleCount" :key="rectIndex">
                 Area {{ rectIndex }}
               </th>
@@ -210,6 +253,15 @@ const resultMatrix = computed(() => {
                 <div v-if="image.createdAt" class="creation-time">
                   {{ formatCreationTime(image.createdAt) }}
                 </div>
+              </td>
+              <td class="image-preview">
+                <img
+                  v-if="getImageUrl(image.fileIndex)"
+                  :src="getImageUrl(image.fileIndex)"
+                  :alt="`Preview of image ${image.fileIndex + 1}`"
+                  class="preview-image"
+                  @click="openImageModal(image.fileIndex)"
+                />
               </td>
               <td
                 v-for="(result, rectIndex) in image.rectangleResults"
@@ -252,6 +304,14 @@ const resultMatrix = computed(() => {
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div v-if="showImageModal" class="image-modal-overlay" @click="closeImageModal">
+    <div class="image-modal-content" @click.stop>
+      <button class="modal-close-btn" @click="closeImageModal">&times;</button>
+      <img :src="modalImageUrl" :alt="modalImageAlt" class="modal-image" />
     </div>
   </div>
 </template>
@@ -470,6 +530,78 @@ const resultMatrix = computed(() => {
   word-break: break-word;
 }
 
+.image-preview {
+  min-width: 100px;
+  max-width: 150px;
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.preview-image:hover {
+  opacity: 0.8;
+}
+
+/* Image Modal Styles */
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  cursor: default;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  transition: background 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
 .image-info {
   display: flex;
   flex-direction: column;
@@ -649,6 +781,15 @@ const resultMatrix = computed(() => {
     max-width: 150px;
   }
 
+  .image-preview {
+    min-width: 80px;
+    max-width: 120px;
+  }
+
+  .preview-image {
+    max-height: 60px;
+  }
+
   .text-result {
     min-width: 150px;
     max-width: 200px;
@@ -679,6 +820,15 @@ const resultMatrix = computed(() => {
   .image-name {
     min-width: 100px;
     max-width: 120px;
+  }
+
+  .image-preview {
+    min-width: 60px;
+    max-width: 100px;
+  }
+
+  .preview-image {
+    max-height: 50px;
   }
 
   .text-result {
